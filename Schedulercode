@@ -26,6 +26,7 @@ class CertificationBodyScheduler:
     def add_auditor(self, auditor):
         self.auditors.append(auditor)
 
+
     def schedule_audit(self, audit_request, date, client_unique_number):
         qualified_auditors = self.filter_auditors(audit_request, date)
         if not qualified_auditors:
