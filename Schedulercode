@@ -1,0 +1,81 @@
+import itertools
+
+class Auditor:
+    def __init__(self, name, qualifications, location, countries):
+        self.name = name
+        self.qualifications = qualifications
+        self.location = location
+        self.countries = countries
+        self.calendar = {}  # Auditor's calendar with dates and availability
+        self.bookings = {}  # Auditor's booked audits with client unique numbers
+
+    def mark_unavailable(self, date):
+        self.calendar[date] = False
+
+    def is_available(self, date):
+        return date not in self.calendar or self.calendar[date]
+
+    def book_audit(self, date, client_unique_number):
+        self.bookings[date] = {'client_unique_number': client_unique_number, 'countries': self.countries}
+        self.mark_unavailable(date)
+
+class CertificationBodyScheduler:
+    def __init__(self):
+        self.auditors = []
+
+    def add_auditor(self, auditor):
+        self.auditors.append(auditor)
+
+    def schedule_audit(self, audit_request, date, client_unique_number):
+        qualified_auditors = self.filter_auditors(audit_request, date)
+        if not qualified_auditors:
+            return None  # No available auditors for the request
+
+        best_schedule = self.find_best_schedule(qualified_auditors, audit_request, date, client_unique_number)
+        return best_schedule
+
+    def filter_auditors(self, audit_request, date):
+        return [auditor for auditor in self.auditors
+                if set(audit_request['qualifications']).issubset(auditor.qualifications)
+                and auditor.location == audit_request['location']
+                and auditor.is_available(date)
+                and set(audit_request['countries']).issubset(auditor.countries)]
+
+    def find_best_schedule(self, qualified_auditors, audit_request, date, client_unique_number):
+        all_possible_schedules = list(itertools.product(qualified_auditors, repeat=audit_request['auditors_needed']))
+        # Implement your scheduling logic here, considering auditor availability on the specified date
+        # For simplicity, let's assume a basic schedule selection here.
+        selected_schedule = all_possible_schedules[0]
+
+        # Book the auditors for the specified date with the client's unique number
+        for auditor in selected_schedule:
+            auditor.book_audit(date, client_unique_number)
+
+        return [{'auditor_name': auditor.name, 'client_info': auditor.bookings[date]} for auditor in selected_schedule]
+
+
+# Example usage:
+
+# Create auditors with availability
+auditor1 = Auditor("Auditor1", ["ISO9001", "ISO14001"], "Germany", ["Germany", "France"])
+auditor1.mark_unavailable("2023-01-15")
+
+auditor2 = Auditor("Auditor2", ["ISO9001", "ISO45001"], "USA", ["USA", "Canada"])
+
+# Create scheduler
+scheduler = CertificationBodyScheduler()
+scheduler.add_auditor(auditor1)
+scheduler.add_auditor(auditor2)
+
+# Define an audit request, date, and client unique number
+audit_request = {'qualifications': ["ISO9001"], 'location': "Germany", 'countries': ["Germany", "France"], 'auditors_needed': 1}
+audit_date = "2023-01-15"
+client_unique_number = "12345"
+
+# Schedule the audit
+result = scheduler.schedule_audit(audit_request, audit_date, client_unique_number)
+
+if result:
+    print(f"Audit scheduled with {result} for client {client_unique_number}")
+else:
+    print("No available auditors for the request on the specified date.")
